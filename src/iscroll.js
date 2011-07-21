@@ -1,6 +1,12 @@
 /*!
  * iScroll v4.1.8 ~ Copyright (c) 2011 Matteo Spinelli, http://cubiq.org
  * Released under MIT license, http://cubiq.org/license
+ * 
+ * Modified by Aseem Kishore in order to improve zooming:
+ * https://github.com/aseemk/iscroll
+ * 
+ * Additional modifications by Ian Gilman, ian@iangilman.com
+ * https://github.com/iangilman/iscroll
  */
 
 (function(){
@@ -95,6 +101,7 @@ var m = Math,
 			onBeforeScrollMove: null,
 			onScrollMove: null,
 			onBeforeScrollEnd: null,
+			onBeforeBounce: null,
 			onScrollEnd: null,
 			onTouchEnd: null,
 			onDestroy: null,
@@ -489,6 +496,11 @@ iScroll.prototype = {
 					that.doubleTapTimer = null;
 					if (that.options.onZoomStart) that.options.onZoomStart.call(that, e);
 					that.zoom(that.pointX, that.pointY, that.scale == 1 ? that.options.doubleTapZoom : 1);
+					if (that.options.onZoomEnd) {
+						setTimeout(function() {
+							that.options.onZoomEnd.call(that, e);
+						}, 200); // 200 is default zoom duration
+					}
 				} else {
 					that.doubleTapTimer = setTimeout(function () {
 						that.doubleTapTimer = null;
@@ -543,7 +555,8 @@ iScroll.prototype = {
 				}
 			}
 
-			that.scrollTo(newPosX, newPosY, newDuration);
+			if (!that.options.onBeforeBounce || that.options.onBeforeBounce() !== false)
+				that.scrollTo(newPosX, newPosY, newDuration);
 
 			if (that.options.onTouchEnd) that.options.onTouchEnd.call(that, e);
 			return;
@@ -563,7 +576,9 @@ iScroll.prototype = {
 			return;
 		}
 
-		that._resetPos(200);
+		if (!that.options.onBeforeBounce || that.options.onBeforeBounce() !== false)
+			that._resetPos(200);
+			
 		if (that.options.onTouchEnd) that.options.onTouchEnd.call(that, e);
 	},
 	
@@ -610,14 +625,14 @@ iScroll.prototype = {
 		
 		if (that.options.wheelAction == 'zoom') {
 			deltaScale = that.scale * Math.pow(2, 1/3 * (wheelDeltaY ? wheelDeltaY / Math.abs(wheelDeltaY) : 0));
-			if (wheelDeltaY < that.options.zoomMin) wheelDeltaY = that.options.zoomMin;
-			if (wheelDeltaY > that.options.zoomMax) wheelDeltaY = that.options.zoomMax;
+			if (deltaScale < that.options.zoomMin) deltaScale = that.options.zoomMin;
+			if (deltaScale > that.options.zoomMax) deltaScale = that.options.zoomMax;
 			
-			if (wheelDeltaY != that.scale) {
+			if (deltaScale != that.scale) {
 				if (!that.wheelZoomCount && that.options.onZoomStart) that.options.onZoomStart.call(that, e);
 				that.wheelZoomCount++;
 				
-				that.zoom(e.pageX, e.pageY, wheelDeltaY, 400);
+				that.zoom(e.pageX, e.pageY, deltaScale, 400);
 				
 				setTimeout(function() {
 					that.wheelZoomCount--;
