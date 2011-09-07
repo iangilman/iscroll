@@ -58,6 +58,8 @@ var m = Math,
 		that.options = {
 			hScroll: true,
 			vScroll: true,
+			x: 0,
+			y: 0,
 			bounce: true,
 			bounceLock: false,
 			momentum: true,
@@ -80,6 +82,10 @@ var m = Math,
 		// User defined options
 		for (i in options) that.options[i] = options[i];
 
+		// Set starting position
+		that.x = that.options.x;
+		that.y = that.options.y;
+
 		// Normalize options
 		that.options.useTransform = hasTransform ? that.options.useTransform : false;
 		that.options.hScrollbar = that.options.hScroll && that.options.hScrollbar;
@@ -92,9 +98,9 @@ var m = Math,
 		that.scroller.style[vendor + 'TransformOrigin'] = '0 0';
 		if (that.options.useTransition) that.scroller.style[vendor + 'TransitionTimingFunction'] = 'cubic-bezier(0.33,0.66,0.66,1)';
 		
-		if (that.options.useTransform) that.scroller.style[vendor + 'Transform'] = trnOpen + '0,0' + trnClose;
-		else that.scroller.style.cssText += ';position:absolute;top:0;left:0';
-				
+		if (that.options.useTransform) that.scroller.style[vendor + 'Transform'] = trnOpen + that.x + 'px,' + that.y + 'px' + trnClose;
+		else that.scroller.style.cssText += ';position:absolute;top:' + that.y + 'px;left:' + that.x + 'px';
+
 		that.refresh();
 
 		that._bind(RESIZE_EV, window);
@@ -195,7 +201,7 @@ iScroll.prototype = {
 		that.pointX = point.pageX;
 		that.pointY = point.pageY;
 
-		that.startTime = e.timeStamp || (new Date()).getTime();
+		that.startTime = e.timeStamp || Date.now();
 
 		if (that.options.onScrollStart) that.options.onScrollStart.call(that, e);
 
@@ -211,7 +217,7 @@ iScroll.prototype = {
 			deltaY = point.pageY - that.pointY,
 			newX = that.x + deltaX,
 			newY = that.y + deltaY,
-			timestamp = e.timeStamp || (new Date()).getTime();
+			timestamp = e.timeStamp || Date.now();
 
 		if (that.options.onBeforeScrollMove) that.options.onBeforeScrollMove.call(that, e);
 
@@ -268,7 +274,7 @@ iScroll.prototype = {
 			target, ev,
 			momentumX = { dist:0, time:0 },
 			momentumY = { dist:0, time:0 },
-			duration = (e.timeStamp || (new Date()).getTime()) - that.startTime,
+			duration = (e.timeStamp || Date.now()) - that.startTime,
 			newPosX = that.x,
 			newPosY = that.y,
 			newDuration;
@@ -316,7 +322,7 @@ iScroll.prototype = {
 		if (momentumX.dist || momentumY.dist) {
 			newDuration = m.max(m.max(momentumX.time, momentumY.time), 10);
 
-			that.scrollTo(newPosX, newPosY, newDuration);
+			that.scrollTo(m.round(newPosX), m.round(newPosY), newDuration);
 
 			if (that.options.onTouchEnd) that.options.onTouchEnd.call(that, e);
 			return;
@@ -374,8 +380,9 @@ iScroll.prototype = {
 	_startAni: function () {
 		var that = this,
 			startX = that.x, startY = that.y,
-			startTime = (new Date).getTime(),
-			step, easeOut;
+			startTime = Date.now(),
+			step, easeOut,
+			animate;
 
 		if (that.animating) return;
 
@@ -399,9 +406,9 @@ iScroll.prototype = {
 			else that._resetPos(0);
 			return;
 		}
-
-		(function animate () {
-			var now = (new Date).getTime(),
+		
+		animate = function () {
+			var now = Date.now(),
 				newX, newY;
 
 			if (now >= startTime + step.time) {
@@ -418,7 +425,9 @@ iScroll.prototype = {
 			newY = (step.y - startY) * easeOut + startY;
 			that._pos(newX, newY);
 			if (that.animating) that.aniTime = nextFrame(animate);
-		})();
+		};
+		
+		animate();
 	},
 
 	_transitionTime: function (time) {
