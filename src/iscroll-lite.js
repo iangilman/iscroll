@@ -5,17 +5,22 @@
 
 (function(){
 var m = Math,
+	mround = function (r) { return r >> 0; },
 	vendor = (/webkit/i).test(navigator.appVersion) ? 'webkit' :
 		(/firefox/i).test(navigator.userAgent) ? 'Moz' :
 		'opera' in window ? 'O' : '',
 
-	// Browser capabilities
-	has3d = 'WebKitCSSMatrix' in window && 'm11' in new WebKitCSSMatrix(),
-	hasTouch = 'ontouchstart' in window,
-	hasTransform = vendor + 'Transform' in document.documentElement.style,
-	isIDevice = (/iphone|ipad/gi).test(navigator.appVersion),
-	isPlaybook = (/playbook/gi).test(navigator.appVersion),
-	hasTransitionEnd = isIDevice || isPlaybook,
+    // Browser capabilities
+    isAndroid = (/android/gi).test(navigator.appVersion),
+    isIDevice = (/iphone|ipad/gi).test(navigator.appVersion),
+    isPlaybook = (/playbook/gi).test(navigator.appVersion),
+    isTouchPad = (/hp-tablet/gi).test(navigator.appVersion),
+
+    has3d = 'WebKitCSSMatrix' in window && 'm11' in new WebKitCSSMatrix(),
+    hasTouch = 'ontouchstart' in window && !isTouchPad,
+    hasTransform = vendor + 'Transform' in document.documentElement.style,
+    hasTransitionEnd = isIDevice || isPlaybook,
+
 	nextFrame = (function() {
 	    return window.requestAnimationFrame
 			|| window.webkitRequestAnimationFrame
@@ -26,6 +31,7 @@ var m = Math,
 	})(),
 	cancelFrame = (function () {
 	    return window.cancelRequestAnimationFrame
+			|| window.webkitCancelAnimationFrame
 			|| window.webkitCancelRequestAnimationFrame
 			|| window.mozCancelRequestAnimationFrame
 			|| window.oCancelRequestAnimationFrame
@@ -143,8 +149,8 @@ iScroll.prototype = {
 		if (this.options.useTransform) {
 			this.scroller.style[vendor + 'Transform'] = trnOpen + x + 'px,' + y + 'px' + trnClose + ' scale(' + this.scale + ')';
 		} else {
-			x = m.round(x);
-			y = m.round(y);
+			x = mround(x);
+			y = mround(y);
 			this.scroller.style.left = x + 'px';
 			this.scroller.style.top = y + 'px';
 		}
@@ -192,9 +198,6 @@ iScroll.prototype = {
 				that._pos(x, y);
 			}
 		}
-
-		that.absStartX = that.x;	// Needed by snap threshold
-		that.absStartY = that.y;
 
 		that.startX = that.x;
 		that.startY = that.y;
@@ -322,7 +325,7 @@ iScroll.prototype = {
 		if (momentumX.dist || momentumY.dist) {
 			newDuration = m.max(m.max(momentumX.time, momentumY.time), 10);
 
-			that.scrollTo(m.round(newPosX), m.round(newPosY), newDuration);
+			that.scrollTo(mround(newPosX), mround(newPosY), newDuration);
 
 			if (that.options.onTouchEnd) that.options.onTouchEnd.call(that, e);
 			return;
@@ -456,7 +459,7 @@ iScroll.prototype = {
 		newDist = newDist * (dist < 0 ? -1 : 1);
 		newTime = speed / deceleration;
 
-		return { dist: newDist, time: m.round(newTime) };
+		return { dist: newDist, time: mround(newTime) };
 	},
 
 	_offset: function (el) {
